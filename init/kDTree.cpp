@@ -202,20 +202,25 @@ void kDTree::insert(const vector<int> &point) {
     insertRecursion(root, point, 0, k);
 }
 
+void mergeSort() {
 
-// int main() {
-//     kDTreeNode *root = nullptr;
-//     insertRecursion(root, {5, 6}, 0, 2);
-//     insertRecursion(root, {2, 2}, 0, 2);
-//     insertRecursion(root, {2, 8}, 0, 2);
-//     insertRecursion(root, {3, 5}, 0, 2);
-//     insertRecursion(root, {7, 3}, 0, 2);
-//     insertRecursion(root, {8, 1}, 0, 2);
-//     insertRecursion(root, {9, 2}, 0, 2);
-//     insertRecursion(root, {8, 7}, 0, 2);
-//     insertRecursion(root, {9, 4}, 0, 2);
-//     printPreorder(root);
-//     cout << '\n';
-//     printInorder(root);
-//     return 0;
-// }
+}
+
+int main() {
+    kDTreeNode *root = nullptr;
+    insertRecursion(root, {5, 6}, 0, 2);
+    insertRecursion(root, {2, 2}, 0, 2);
+    insertRecursion(root, {2, 8}, 0, 2);
+    insertRecursion(root, {3, 5}, 0, 2);
+    insertRecursion(root, {7, 3}, 0, 2);
+    insertRecursion(root, {8, 1}, 0, 2);
+    insertRecursion(root, {9, 2}, 0, 2);
+    insertRecursion(root, {8, 7}, 0, 2);
+    insertRecursion(root, {9, 4}, 0, 2);
+    printPreorder(root);
+    cout << '\n';
+    printInorder(root);
+    deleteTree(root);
+    cout << root;
+    return 0;
+}
