@@ -66,7 +66,7 @@ private:
     int k;
 
 public:
-    kNN(int k = 5);
+    kNN(int k = 5) : k(k) {}
     void fit(Dataset &X_train, Dataset &y_train);
     Dataset predict(Dataset &X_test);
     double score(const Dataset &y_test, const Dataset &y_pred);

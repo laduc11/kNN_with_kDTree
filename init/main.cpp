@@ -143,7 +143,7 @@ void tc9()
 
 int main(int argc, const char *argv[])
 {
-    tc9();
+    tc1();
 
     return 0;
 }
