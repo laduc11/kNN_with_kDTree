@@ -25,6 +25,7 @@ const kDTree &kDTree::operator=(const kDTree &other)
     // copy a new tree from "other"
     root = deepCopyTree(other.root);
     k = other.k;
+    return *this;
 }
 
 // copy constructor
@@ -202,9 +203,6 @@ void kDTree::insert(const vector<int> &point) {
     insertRecursion(root, point, 0, k);
 }
 
-void mergeSort() {
-
-}
 
 int main() {
     kDTreeNode *root = nullptr;
@@ -220,7 +218,7 @@ int main() {
     printPreorder(root);
     cout << '\n';
     printInorder(root);
+    cout << '\n';
     deleteTree(root);
-    cout << root;
     return 0;
 }

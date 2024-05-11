@@ -38,7 +38,7 @@ private:
     kDTreeNode *root;
 
 public:
-    kDTree(int k = 2) : k(k) {}
+    kDTree(int k = 2) : k(k), root(nullptr) {}
     ~kDTree() { clear(); }
 
     const kDTree &operator=(const kDTree &other);
