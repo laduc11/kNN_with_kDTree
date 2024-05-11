@@ -359,7 +359,71 @@ bool kDTree::search(const vector<int> &point) {
     return searchNode(point, root, 0, k);
 }
 
+// Find nearest neighbour
+double calDistance(const vector<int> &a, const vector<int> &b) {
+    long long sum = 0, size = a.size();
+    for (int idx = 0; idx < size; ++idx) {
+        sum += (a[idx] - b[idx]) * (a[idx] - b[idx]);
+    }
+    return sqrt(sum);
+}
 
+kDTreeNode* findNearest(const vector<int> &target,
+                        kDTreeNode *root, 
+                        int dimension, 
+                        const int &k) {
+    if (!root)
+        return nullptr;
+    
+    if (target[dimension] < root->data[dimension]){
+        if (root->left) {
+            // find the nearest in left tree
+            kDTreeNode *nearest = findNearest(target, root->left, (dimension + 1) % k, k);
+            double distanceFromBest = calDistance(nearest->data, target);
+            double distanceFromRoot = calDistance(nearest->data, target);
+            if (distanceFromRoot < distanceFromBest)
+                return root;
+            
+            if ((double)(root->data[dimension] - target[dimension]) < distanceFromBest) {
+                if (root->right) {
+                    kDTreeNode *otherNearest = findNearest(target, root->right, (dimension + 1) % k, k);
+                    if (calDistance(otherNearest->data, target) < distanceFromBest)
+                        return otherNearest;
+                }
+            }
+            return nearest;
+        }
+    } else if (root->right) {
+        // special case
+        if (target[dimension] == root->data[dimension] && is_equal(target, root->data))
+            return root;
+        // find the nearest in right tree
+        kDTreeNode *nearest = findNearest(target, root->right, (dimension + 1) % k, k);
+            double distanceFromBest = calDistance(nearest->data, target);
+            double distanceFromRoot = calDistance(nearest->data, target);
+            if (distanceFromRoot < distanceFromBest)
+                return root;
+            
+            if ((double)(root->data[dimension] - target[dimension]) < distanceFromBest) {
+                if (root->left) {
+                    kDTreeNode *otherNearest = findNearest(target, root->left, (dimension + 1) % k, k);
+                    if (calDistance(otherNearest->data, target) < distanceFromBest)
+                        return otherNearest;
+                }
+            }
+            return nearest;
+    }
+    return root;
+}
+
+// find the nearest neighbour
+// input: taget
+// output: all the nearest
+void kDTree::nearestNeighbour(const vector<int> &target, kDTreeNode *&best) {
+    if (!root)
+        return;
+    best = findNearest(target, root, 0, k);
+}
 
 
 // test functions
