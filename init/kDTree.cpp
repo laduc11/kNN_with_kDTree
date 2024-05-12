@@ -425,6 +425,127 @@ void kDTree::nearestNeighbour(const vector<int> &target, kDTreeNode *&best) {
     best = findNearest(target, root, 0, k);
 }
 
+// find k nearest neighbours
+struct nodeInMaxHeap {
+    kDTreeNode* data;
+    double distance;
+    nodeInMaxHeap(kDTreeNode *point, const double &distance) : data(point), distance(distance) {}
+};
+
+struct maxHeap{
+    vector<nodeInMaxHeap> listPoints;
+    int k;
+
+    maxHeap(const int k) : k(k) {}
+    void reheapDown(int position) {
+        int leftChild = 2 * position + 1;
+        if (leftChild < k && listPoints[leftChild].distance > listPoints[position].distance) {
+            int rightChild = leftChild + 1;
+            if (rightChild < k) {
+                if (listPoints[rightChild].distance > listPoints[leftChild].distance) {
+                    std::swap(listPoints[position], listPoints[rightChild]);
+                    reheapDown(rightChild);
+                    return;
+                }
+            }
+            std::swap(listPoints[position], listPoints[leftChild]);
+            reheapDown(leftChild);
+        }
+    }
+    void buildHeap() {
+        for (int position = (k - 1) / 2; position > -1; --position) {
+            reheapDown(position);
+        }
+    }
+    void push(const nodeInMaxHeap &node) {
+        listPoints.push_back(node);
+        if ((int)listPoints.size() == k) {
+            buildHeap();
+        } else if ((int)listPoints.size() > k) {
+            if (listPoints[listPoints.size() - 1].distance <  listPoints[0].distance) {
+                std::swap(listPoints[listPoints.size() - 1], listPoints[0]);
+                reheapDown(0);
+            }
+            listPoints.pop_back();
+        }
+    }
+    void heapSort() {
+        int numberOfElement = listPoints.size();
+        for (int idx = numberOfElement - 1; idx > 0; --idx) {
+            std::swap(listPoints[0], listPoints[idx]);
+            this->k--;
+            reheapDown(0);
+        }
+        this->k = numberOfElement;
+    }
+};
+
+kDTreeNode* findKNearest(const vector<int> &target,
+                  kDTreeNode *root,
+                  maxHeap &storage,
+                  int dimension,
+                  const int &k) {
+    if (!root)
+        return nullptr;
+
+    double distanceFromRoot = calDistance(root->data, target);
+    storage.push(nodeInMaxHeap(root, distanceFromRoot));
+
+    if (target[dimension] < root->data[dimension]) {
+        // move to left tree
+        if (root->left) {
+            // find the nearest in left tree
+            kDTreeNode *nearest = findKNearest(target, root->left, storage, (dimension + 1) % k, k);
+            double distanceFromBest = calDistance(nearest->data, target);
+            double distanceFromRoot = calDistance(nearest->data, target);
+            if (distanceFromRoot < distanceFromBest)
+                return root;
+            
+            if ((double)(root->data[dimension] - target[dimension]) < distanceFromBest) {
+                if (root->right) {
+                    kDTreeNode *otherNearest = findKNearest(target, root->right, storage, (dimension + 1) % k, k);
+                    if (calDistance(otherNearest->data, target) < distanceFromBest)
+                        return otherNearest;
+                }
+            }
+            return nearest;
+        }
+    } else {
+        if (root->right) {
+            // special case
+            if (target[dimension] == root->data[dimension] && is_equal(target, root->data))
+                return root;
+            // find the nearest in right tree
+            kDTreeNode *nearest = findKNearest(target, root->right, storage, (dimension + 1) % k, k);
+            double distanceFromBest = calDistance(nearest->data, target);
+            double distanceFromRoot = calDistance(nearest->data, target);
+            if (distanceFromRoot < distanceFromBest)
+                return root;
+
+            if ((double)(root->data[dimension] - target[dimension]) < distanceFromBest) {
+                if (root->left) {
+                    kDTreeNode *otherNearest = findKNearest(target, root->left, storage, (dimension + 1) % k, k);
+                    if (calDistance(otherNearest->data, target) < distanceFromBest)
+                        return otherNearest;
+                }
+            }
+            return nearest;
+        }
+    }
+    return root;
+}
+
+void kDTree::kNearestNeighbour(const vector<int> &target, int k, vector<kDTreeNode *> &bestList) {
+    maxHeap storage(k);
+    findKNearest(target, root, storage, 0, this->k);
+    int size = storage.listPoints.size();
+    if (!bestList.empty()) bestList.clear();
+    storage.heapSort();
+    for (int idx = 0; idx < size; ++idx) {
+        bestList.push_back(storage.listPoints[idx].data);
+    }
+}
+
 
 // test functions
 // int main() {
