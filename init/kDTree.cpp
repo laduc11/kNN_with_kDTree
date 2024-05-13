@@ -185,19 +185,20 @@ void kDTree::clear() {
 void insertRecursion(kDTreeNode *&root, 
                      const vector<int> &point, 
                      int dimension, 
-                     const int &k) {
+                     const int &k,
+                     const int &label = -1) {
     if (!root) {
-        root = new kDTreeNode(point);
+        root = new kDTreeNode(point, nullptr, nullptr, label);
     } else if (point[dimension] < root->data[dimension]) {
         // insert to left tree
-        insertRecursion(root->left, point, (dimension + 1) % k, k);
+        insertRecursion(root->left, point, (dimension + 1) % k, k, label);
     } else {
         // insert to right tree
-        insertRecursion(root->right, point, (dimension + 1) % k, k);
+        insertRecursion(root->right, point, (dimension + 1) % k, k, label);
     }
 }
 
-void kDTree::insert(const vector<int> &point) {
+void kDTree::insert(const vector<int> &point, const int &label) {
     if ((int)point.size() != k)
         return;
     insertRecursion(root, point, 0, k);
@@ -207,6 +208,7 @@ void kDTree::insert(const vector<int> &point) {
 // input: list, start, end, dimenstion compare
 // output: none
 void mergeSort(vector<vector<int>> &listPoints, 
+               vector<int> &listLabels,
                int startIdx, 
                int endIdx, 
                const int &dimension) {
@@ -214,58 +216,75 @@ void mergeSort(vector<vector<int>> &listPoints,
         return;
 
     int len = endIdx - startIdx + 1;
-    mergeSort(listPoints, startIdx, startIdx + (len / 2) - 1, dimension);
-    mergeSort(listPoints, startIdx + (len / 2), endIdx, dimension);
-    vector<vector<int>> tempVector;
+    mergeSort(listPoints, listLabels, startIdx, startIdx + (len / 2) - 1, dimension);
+    mergeSort(listPoints, listLabels, startIdx + (len / 2), endIdx, dimension);
+    vector<vector<int>> tempListPoints;
+    vector<int> tempListLabels;
     int pointer1 = startIdx, pointer2 = startIdx + (len / 2), end1 = pointer2, end2 = endIdx + 1;
     // sort in sub-list
     while (pointer1 < end1 && pointer2 < end2) {
         if (listPoints[pointer1][dimension] < listPoints[pointer2][dimension]) {
-            tempVector.push_back(listPoints[pointer1]);
+            tempListPoints.push_back(listPoints[pointer1]);
+            tempListLabels.push_back(listLabels[pointer1]);
             pointer1++;
         } else {
-            tempVector.push_back(listPoints[pointer2]);
+            tempListPoints.push_back(listPoints[pointer2]);
+            tempListLabels.push_back(listLabels[pointer2]);
             pointer2++;
         }
     }
     while (pointer1 < end1) {
-        tempVector.push_back(listPoints[pointer1]);
+        tempListPoints.push_back(listPoints[pointer1]);
+        tempListLabels.push_back(listLabels[pointer1]);
         pointer1++;
     }
     while (pointer2 < end2) {
-        tempVector.push_back(listPoints[pointer2]);
+        tempListPoints.push_back(listPoints[pointer2]);
+        tempListLabels.push_back(listLabels[pointer2]);
         pointer2++;
     }
     // copy to main list
     for (int idx = 0; idx < len; ++idx) {
-        listPoints[startIdx + idx] = tempVector[idx];
+        listPoints[startIdx + idx] = tempListPoints[idx];
+        listLabels[startIdx + idx] = tempListLabels[idx];
     }
 }
 
 kDTreeNode* buildKDTree(vector<vector<int>> &pointList, 
+                        vector<int> labelList,
                         int dimension, 
                         const int &k) {
     int len = pointList.size(), middle = (len - 1) / 2;
     if (len < 1)
         return nullptr;
-    mergeSort(pointList, 0, len - 1, dimension);
-    kDTreeNode *root = new kDTreeNode(pointList[middle]);
+    mergeSort(pointList, labelList, 0, len - 1, dimension);
+    kDTreeNode *root = new kDTreeNode(pointList[middle], nullptr, nullptr, labelList[middle]);
+    // split the list of points
     vector<vector<int>> leftList(pointList.begin(), pointList.begin() + middle);
     vector<vector<int>> rightList(pointList.begin() + middle + 1, pointList.end());
-    root->left = buildKDTree(leftList, (dimension + 1) % k, k);
-    root->right = buildKDTree(rightList, (dimension + 1) % k, k);
+    // split the list of labels
+    vector<int> leftLabel(labelList.begin(), labelList.begin() + middle);
+    vector<int> rightLabel(labelList.begin() + middle + 1, labelList.end());
+    // build left tree and right tree
+    root->left = buildKDTree(leftList, leftLabel, (dimension + 1) % k, k);
+    root->right = buildKDTree(rightList, rightLabel, (dimension + 1) % k, k);
     return root;
 }
 
 // Build Tree from a list of points
 // input: list of points
 // output: new k-D tree
-void kDTree::buildTree(const vector<vector<int>> &pointList) {
+void kDTree::buildTree(const vector<vector<int>> &pointList, vector<int> labelList) {
     if ((int)pointList[0].size() != k)
         return;
 
+    // default list of labels with -1
+    if (labelList[0] == -1)
+        labelList = vector<int>(pointList.size(), -1);
     vector<vector<int>> newList(pointList);
-    root = buildKDTree(newList, 0, k);
+    if (root)
+        clear();
+    root = buildKDTree(newList, labelList, 0, k);
 }
 
 // compare data
@@ -546,6 +565,70 @@ void kDTree::kNearestNeighbour(const vector<int> &target, int k, vector<kDTreeNo
     }
 }
 
+// kNN class
+// default constructor
+kNN::kNN(int k) : k(k), trainData(kDTree()) {}
+
+// destructor
+kNN::~kNN() {}
+
+// load the train dataset
+void kNN::fit(Dataset &X_train, Dataset &y_train) {
+    int dimensionData = X_train.columnName.size(), numberOfSamples = X_train.data.size();
+    trainData = kDTree(dimensionData);
+    // convert list to vector
+    vector<vector<int>> data(numberOfSamples, vector<int>());   // convert data
+    vector<int> labels(numberOfSamples, -1);
+    int index = 0;
+    for (auto line : X_train.data) {
+        data[index++] = vector<int>(line.begin(), line.end());
+    }
+    index = 0;
+    for (auto line : y_train.data) {
+        labels[index++] = line.front();
+    }
+    // build k-D tree for train dataset
+    trainData.buildTree(data, labels);
+}
+
+// predict the labels base on kNN algorithm
+Dataset kNN::predict(Dataset &X_test) {
+    Dataset y_pred;
+    y_pred.columnName = vector<string>(1, "label");
+    for (auto testPoint : X_test.data) {
+        vector<kDTreeNode *> bestPoints;
+        trainData.kNearestNeighbour(vector<int>(testPoint.begin(), testPoint.end()), k, bestPoints);
+        int label[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        for (int idx = 0; idx < (int)bestPoints.size(); ++idx) {
+            label[bestPoints[idx]->label]++;
+        }
+        // find label for test point
+        int labelPredict = 0, maxCount = label[0];
+        for (int idx = 1; idx < 10; ++idx) {
+            if (label[idx] > maxCount) {
+                maxCount = label[idx];
+                labelPredict = idx;
+            }
+        }
+        y_pred.data.push_back(list<int>(1, labelPredict));
+    }
+    return y_pred;
+}
+
+// calculate accuracy of result predicted
+double kNN::score(const Dataset &y_test, const Dataset &y_pred) {
+    double correct = 0.0;
+    int size = y_test.data.size();
+    list<list<int>> correctLabels = y_test.data, predictLabels = y_pred.data;
+    list<list<int>>::iterator curCorrectLabel = correctLabels.begin(), 
+                              curPredictLabel = predictLabels.begin(),
+                              endCorrectLabel = correctLabels.end();
+    for (; curCorrectLabel != endCorrectLabel; ++curCorrectLabel, ++curPredictLabel) {
+        if ((*curPredictLabel).front() == (*curCorrectLabel).front())
+            correct += 1.0;
+    }
+    return (double)correct / size;
+}
 
 // test functions
 // int main() {
@@ -565,9 +648,11 @@ void kDTree::kNearestNeighbour(const vector<int> &target, int k, vector<kDTreeNo
 //     // cout << '\n';
 //     // deleteTree(root);
 
-//     // vector<vector<int>> listPoints = {{5, 6}, {2, 2}, {7, 3}, {2, 8}, {8, 7}, {8, 1}, {9, 4}, {3, 5}};
-//     // root = buildKDTree(listPoints, 0, 2);
-//     // printPreorder(root);
+//     vector<vector<int>> listPoints = {{5, 6}, {2, 2}, {7, 3}, {2, 8}, {8, 7}, {8, 1}, {9, 4}, {3, 5}};
+//     vector<int> listLabels = {1, 2, 3, 4, 5, 6, 7, 8};
+//     root = buildKDTree(listPoints, listLabels, 0, 2);
+//     printPreorder(root);
+//     cout << "\nlabel: " << root->right->right->right->label;
 //     // cout << '\n';
 //     // printInorder(root);
 //     // cout << '\n';

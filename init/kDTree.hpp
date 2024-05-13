@@ -6,13 +6,15 @@
 struct kDTreeNode
 {
     vector<int> data;
+    int label;          // label is just used for train dataset
     kDTreeNode *left;
     kDTreeNode *right;
-    kDTreeNode(vector<int> data, kDTreeNode *left = nullptr, kDTreeNode *right = nullptr)
+    kDTreeNode(vector<int> data, kDTreeNode *left = nullptr, kDTreeNode *right = nullptr, const int &label = -1)
     {
         this->data = data;
         this->left = left;
         this->right = right;
+        this->label = label;
     }
 
     friend ostream &operator<<(ostream &os, const kDTreeNode &node)
@@ -52,10 +54,10 @@ public:
     int leafCount() const;
     void clear();
 
-    void insert(const vector<int> &point);
+    void insert(const vector<int> &point, const int &label = -1);
     void remove(const vector<int> &point);
     bool search(const vector<int> &point);
-    void buildTree(const vector<vector<int>> &pointList);
+    void buildTree(const vector<vector<int>> &pointList, vector<int> labelList = vector<int>(1, -1));
     void nearestNeighbour(const vector<int> &target, kDTreeNode *&best);
     void kNearestNeighbour(const vector<int> &target, int k, vector<kDTreeNode *> &bestList);
 };
@@ -64,9 +66,11 @@ class kNN
 {
 private:
     int k;
+    kDTree trainData;
 
 public:
-    kNN(int k = 5) : k(k) {}
+    kNN(int k = 5);
+    ~kNN();
     void fit(Dataset &X_train, Dataset &y_train);
     Dataset predict(Dataset &X_test);
     double score(const Dataset &y_test, const Dataset &y_pred);
