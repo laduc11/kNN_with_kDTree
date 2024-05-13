@@ -457,16 +457,16 @@ struct maxHeap{
 
     maxHeap(const int k) : k(k) {}
     void reheapDown(int position) {
-        int leftChild = 2 * position + 1;
-        if (leftChild < k && listPoints[leftChild].distance > listPoints[position].distance) {
-            int rightChild = leftChild + 1;
-            if (rightChild < k) {
-                if (listPoints[rightChild].distance > listPoints[leftChild].distance) {
-                    std::swap(listPoints[position], listPoints[rightChild]);
-                    reheapDown(rightChild);
-                    return;
-                }
-            }
+        int leftChild = 2 * position + 1, rightChild = leftChild + 1;
+        if (rightChild < k && 
+            listPoints[rightChild].distance > listPoints[leftChild].distance &&  
+            listPoints[rightChild].distance > listPoints[position].distance) {
+            // reheap down on right child
+            std::swap(listPoints[position], listPoints[rightChild]);
+            reheapDown(rightChild);
+        } else if (leftChild < k && 
+                   listPoints[leftChild].distance > listPoints[position].distance) {
+            // reheap down on left child
             std::swap(listPoints[position], listPoints[leftChild]);
             reheapDown(leftChild);
         }
@@ -516,10 +516,11 @@ kDTreeNode* findKNearest(const vector<int> &target,
             // find the nearest in left tree
             kDTreeNode *nearest = findKNearest(target, root->left, storage, (dimension + 1) % k, k);
             double distanceFromBest = calDistance(nearest->data, target);
-            double distanceFromRoot = calDistance(nearest->data, target);
-            if (distanceFromRoot < distanceFromBest)
-                return root;
-            
+            // double distanceFromRoot = calDistance(root->data, target);
+            if (distanceFromRoot < distanceFromBest) {
+                nearest = root;
+                distanceFromBest = distanceFromRoot;
+            }
             if ((double)(root->data[dimension] - target[dimension]) < distanceFromBest) {
                 if (root->right) {
                     kDTreeNode *otherNearest = findKNearest(target, root->right, storage, (dimension + 1) % k, k);
@@ -537,10 +538,11 @@ kDTreeNode* findKNearest(const vector<int> &target,
             // find the nearest in right tree
             kDTreeNode *nearest = findKNearest(target, root->right, storage, (dimension + 1) % k, k);
             double distanceFromBest = calDistance(nearest->data, target);
-            double distanceFromRoot = calDistance(nearest->data, target);
-            if (distanceFromRoot < distanceFromBest)
-                return root;
-
+            // double distanceFromRoot = calDistance(root->data, target);
+            if (distanceFromRoot < distanceFromBest) {
+                nearest = root;
+                distanceFromBest = distanceFromRoot;
+            }
             if ((double)(root->data[dimension] - target[dimension]) < distanceFromBest) {
                 if (root->left) {
                     kDTreeNode *otherNearest = findKNearest(target, root->left, storage, (dimension + 1) % k, k);
@@ -629,34 +631,3 @@ double kNN::score(const Dataset &y_test, const Dataset &y_pred) {
     }
     return (double)correct / size;
 }
-
-// test functions
-// int main() {
-//     kDTreeNode *root = nullptr;
-//     // insertRecursion(root, {5, 6}, 0, 2);
-//     // insertRecursion(root, {2, 2}, 0, 2);
-//     // insertRecursion(root, {2, 8}, 0, 2);
-//     // insertRecursion(root, {3, 5}, 0, 2);
-//     // insertRecursion(root, {7, 3}, 0, 2);
-//     // insertRecursion(root, {8, 1}, 0, 2);
-//     // insertRecursion(root, {9, 2}, 0, 2);
-//     // insertRecursion(root, {8, 7}, 0, 2);
-//     // insertRecursion(root, {9, 4}, 0, 2);
-//     // printPreorder(root);
-//     // cout << '\n';
-//     // printInorder(root);
-//     // cout << '\n';
-//     // deleteTree(root);
-
-//     vector<vector<int>> listPoints = {{5, 6}, {2, 2}, {7, 3}, {2, 8}, {8, 7}, {8, 1}, {9, 4}, {3, 5}};
-//     vector<int> listLabels = {1, 2, 3, 4, 5, 6, 7, 8};
-//     root = buildKDTree(listPoints, listLabels, 0, 2);
-//     printPreorder(root);
-//     cout << "\nlabel: " << root->right->right->right->label;
-//     // cout << '\n';
-//     // printInorder(root);
-//     // cout << '\n';
-//     // deleteTree(root);
-    
-//     return 0;
-// }
