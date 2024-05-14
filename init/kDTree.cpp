@@ -162,13 +162,13 @@ int kDTree::leafCount() const {
 void deleteTree(kDTreeNode *&root) {
     if (!root)
         return;
-    if (!root->left && !root->right) {
-        // delete leaf node
-        kDTreeNode *delNode = root;
-        root = nullptr;
-        delete delNode;
-        return;
-    }
+    // if (!root->left && !root->right) {
+    //     // delete leaf node
+    //     kDTreeNode *delNode = root;
+    //     root = nullptr;
+    //     delete delNode;
+    //     return;
+    // }
     deleteTree(root->left);
     deleteTree(root->right);
     kDTreeNode *delNode = root;
@@ -339,6 +339,8 @@ void removeNode(const vector<int> &point, kDTreeNode *&root, int dimension, cons
                 vector<int> smallestLeftNode = findSmallest(root->left, dimension);
                 root->data = smallestLeftNode;
                 removeNode(smallestLeftNode, root->left, (dimension + 1) % k, k);
+                root->right = root->left;
+                root->left = nullptr;
             } else {
                 // deletion node is leaf node
                 kDTreeNode *delNode = root;
