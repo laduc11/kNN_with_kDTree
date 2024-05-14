@@ -448,14 +448,19 @@ void kDTree::nearestNeighbour(const vector<int> &target, kDTreeNode *&best) {
 struct nodeInMaxHeap {
     kDTreeNode* data;
     double distance;
-    nodeInMaxHeap(kDTreeNode *point, const double &distance) : data(point), distance(distance) {}
+    int ID;
+    nodeInMaxHeap(kDTreeNode *point, 
+                  const double &distance, 
+                  const int &ID) : data(point), 
+                                   distance(distance), 
+                                   ID(ID) {}
 };
 
 struct maxHeap{
     vector<nodeInMaxHeap> listPoints;
-    int k;
+    int k, count;
 
-    maxHeap(const int k) : k(k) {}
+    maxHeap(const int k) : k(k), count(0), listPoints(vector<nodeInMaxHeap>()) {}
     void reheapDown(int position) {
         int leftChild = 2 * position + 1, rightChild = leftChild + 1;
         if (rightChild < k && 
@@ -469,6 +474,42 @@ struct maxHeap{
             // reheap down on left child
             std::swap(listPoints[position], listPoints[leftChild]);
             reheapDown(leftChild);
+        } else {
+            if (rightChild < k) {
+                if (listPoints[leftChild].distance == listPoints[rightChild].distance &&
+                    listPoints[leftChild].distance == listPoints[position].distance) {
+                    // left child == right child == position
+                    // => check ID
+                    if (listPoints[leftChild].ID > listPoints[rightChild].ID &&
+                        listPoints[leftChild].ID > listPoints[position].ID) {
+                        std::swap(listPoints[position], listPoints[leftChild]);
+                        reheapDown(leftChild);
+                    } else if (listPoints[rightChild].ID > listPoints[leftChild].ID &&
+                               listPoints[rightChild].ID > listPoints[position].ID) {
+                        std::swap(listPoints[position], listPoints[rightChild]);
+                        reheapDown(rightChild);
+                    }
+                } else if (listPoints[leftChild].distance == listPoints[position].distance) {
+                    // left child == position
+                    if (listPoints[leftChild].ID > listPoints[position].ID) {
+                        std::swap(listPoints[position], listPoints[leftChild]);
+                        reheapDown(leftChild);
+                    }
+                } else if (listPoints[rightChild].distance == listPoints[position].distance) {
+                    // right child == position
+                    if (listPoints[rightChild].ID > listPoints[position].ID) {
+                        std::swap(listPoints[position], listPoints[rightChild]);
+                        reheapDown(rightChild);
+                    }
+                }
+            } else if (leftChild < k) {
+                if (listPoints[leftChild].distance == listPoints[position].distance) {
+                    if (listPoints[leftChild].ID > listPoints[position].ID) {
+                        std::swap(listPoints[position], listPoints[leftChild]);
+                        reheapDown(leftChild);
+                    }
+                } 
+            }
         }
     }
     void buildHeap() {
@@ -478,6 +519,7 @@ struct maxHeap{
     }
     void push(const nodeInMaxHeap &node) {
         listPoints.push_back(node);
+        count++;
         if ((int)listPoints.size() == k) {
             buildHeap();
         } else if ((int)listPoints.size() > k) {
@@ -508,7 +550,6 @@ kDTreeNode* findKNearest(const vector<int> &target,
         return nullptr;
 
     double distanceFromRoot = calDistance(root->data, target);
-    storage.push(nodeInMaxHeap(root, distanceFromRoot));
 
     if (target[dimension] < root->data[dimension]) {
         // move to left tree
@@ -523,18 +564,25 @@ kDTreeNode* findKNearest(const vector<int> &target,
             }
             if ((double)(root->data[dimension] - target[dimension]) < distanceFromBest) {
                 if (root->right) {
+                    // find on an opposite side
                     kDTreeNode *otherNearest = findKNearest(target, root->right, storage, (dimension + 1) % k, k);
-                    if (calDistance(otherNearest->data, target) < distanceFromBest)
+                    if (calDistance(otherNearest->data, target) < distanceFromBest) {
+                        storage.push(nodeInMaxHeap(root, distanceFromRoot, storage.count));
                         return otherNearest;
+                    }
+                        
                 }
             }
+            storage.push(nodeInMaxHeap(root, distanceFromRoot, storage.count));
             return nearest;
         }
     } else {
         if (root->right) {
             // special case
-            if (target[dimension] == root->data[dimension] && is_equal(target, root->data))
+            if (target[dimension] == root->data[dimension] && is_equal(target, root->data)) {
+                storage.push(nodeInMaxHeap(root, distanceFromRoot, storage.count));
                 return root;
+            }
             // find the nearest in right tree
             kDTreeNode *nearest = findKNearest(target, root->right, storage, (dimension + 1) % k, k);
             double distanceFromBest = calDistance(nearest->data, target);
@@ -545,14 +593,19 @@ kDTreeNode* findKNearest(const vector<int> &target,
             }
             if ((double)(root->data[dimension] - target[dimension]) < distanceFromBest) {
                 if (root->left) {
+                    // find on an opposite side
                     kDTreeNode *otherNearest = findKNearest(target, root->left, storage, (dimension + 1) % k, k);
-                    if (calDistance(otherNearest->data, target) < distanceFromBest)
+                    if (calDistance(otherNearest->data, target) < distanceFromBest) {
+                        storage.push(nodeInMaxHeap(root, distanceFromRoot, storage.count));
                         return otherNearest;
+                    }
                 }
             }
+            storage.push(nodeInMaxHeap(root, distanceFromRoot, storage.count));
             return nearest;
         }
     }
+    storage.push(nodeInMaxHeap(root, distanceFromRoot, storage.count));
     return root;
 }
 
@@ -631,3 +684,4 @@ double kNN::score(const Dataset &y_test, const Dataset &y_pred) {
     }
     return (double)correct / size;
 }
+
