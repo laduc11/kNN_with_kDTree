@@ -300,22 +300,34 @@ bool is_equal(const vector<int> &a, const vector<int> &b) {
 // find a node have smallest value in alpha dimension
 // input: root of tree, dimension to find
 // output: smallest data
-vector<int> findSmallest(kDTreeNode *root, const int &alpha) {
-    vector<kDTreeNode *> queueNode;
-    queueNode.push_back(root);
-    vector<int> smallest = root->data;
-    while (!queueNode.empty()) {
-        kDTreeNode *top = queueNode[0];
-        if (top->data[alpha] < smallest[alpha])
-            smallest = top->data;
-
-        queueNode.erase(queueNode.begin());
-        if (top->left)
-            queueNode.push_back(top->left);
-        if (top->right)
-            queueNode.push_back(top->right);
+vector<int> findSmallest(kDTreeNode *root, const int &alpha, int dimension, const int &k) {
+    if (!root) 
+        return vector<int>();
+    
+    if (dimension == alpha) {
+        if (root->left)
+            return findSmallest(root->left, alpha, (dimension + 1) % k, k);
+        return root->data;
     }
-    return smallest;
+
+    vector<int> minLeft, minRight;
+    if (root->left)
+        minLeft = findSmallest(root->left, alpha, (dimension + 1) % k, k);
+    if (root->right)
+        minRight = findSmallest(root->right, alpha, (dimension + 1) % k, k);
+    
+    if (root->left && root->right) {
+        if (root->data[alpha] < minLeft[alpha] && root->data[alpha] < minRight[alpha])
+            return root->data;
+        else if (minLeft[alpha] < root->data[alpha] && minLeft[alpha] < minRight[alpha])
+            return minLeft;
+        return minRight;
+    } else if (root->left) {
+        if (root->data[alpha] < minLeft[alpha])
+            return root->data;
+        return minLeft;
+    }
+    return root->data;
 }
 
 // Remove a node in tree
@@ -331,12 +343,12 @@ void removeNode(const vector<int> &point, kDTreeNode *&root, int dimension, cons
             // remove node
             if (root->right) {
                 // have right tree
-                vector<int> smallestRightNode = findSmallest(root->right, dimension);
+                vector<int> smallestRightNode = findSmallest(root->right, dimension, (dimension + 1) % k, k);
                 root->data = smallestRightNode;
                 removeNode(smallestRightNode, root->right, (dimension + 1) % k, k);
             } else if (root->left) {
                 // do not have right tree but have left tree
-                vector<int> smallestLeftNode = findSmallest(root->left, dimension);
+                vector<int> smallestLeftNode = findSmallest(root->left, dimension, (dimension + 1) % k, k);
                 root->data = smallestLeftNode;
                 removeNode(smallestLeftNode, root->left, (dimension + 1) % k, k);
                 root->right = root->left;
