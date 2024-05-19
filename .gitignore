@@ -1,3 +1,5 @@
 .vscode/
 
 init/main.exe
+
+MNIST_CSV/

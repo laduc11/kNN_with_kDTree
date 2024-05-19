@@ -317,13 +317,13 @@ vector<int> findSmallest(kDTreeNode *root, const int &alpha, int dimension, cons
         minRight = findSmallest(root->right, alpha, (dimension + 1) % k, k);
     
     if (root->left && root->right) {
-        if (root->data[alpha] < minLeft[alpha] && root->data[alpha] < minRight[alpha])
+        if (root->data[alpha] <= minLeft[alpha] && root->data[alpha] <= minRight[alpha])
             return root->data;
-        else if (minLeft[alpha] < root->data[alpha] && minLeft[alpha] < minRight[alpha])
+        else if (minLeft[alpha] < root->data[alpha] && minLeft[alpha] <= minRight[alpha])
             return minLeft;
         return minRight;
     } else if (root->left) {
-        if (root->data[alpha] < minLeft[alpha])
+        if (root->data[alpha] <= minLeft[alpha])
             return root->data;
         return minLeft;
     }
